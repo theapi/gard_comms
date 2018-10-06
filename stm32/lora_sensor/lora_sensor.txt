@@ -54,9 +54,9 @@ SOFTWARE PROJECT
 
 Project Settings : 
 Project Name : lora_sensor
-Project Folder : /home/peter/repos/solar_pump_logger/stm32/lora_sensor
+Project Folder : /home/peter/repos/solar_pump_logger_firmware/stm32/lora_sensor
 Toolchain / IDE : SW4STM32
-Firmware Package Name and Version : STM32Cube FW_L0 V1.9.0
+Firmware Package Name and Version : STM32Cube FW_L0 V1.10.0
 
 
 Code Generation Settings : 
