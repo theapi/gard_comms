@@ -51,7 +51,7 @@
 #include "string.h"
 
 #include "rfm95.h"
-#include "payload_garden.h"
+#include "payload_solar.h"
 #include "ads1015.h"
 #include "battery.h"
 #include "temperature.h"
@@ -133,11 +133,12 @@ int main(void)
 
     RFM95_init(&hspi2);
 
-    uint8_t payload_buff[14];
-    PAYLOAD_Garden payload_garden;
-    payload_garden.MessageType = 50;
-    payload_garden.MessageId = 0;
-
+    uint8_t payload_buff[PAYLOAD_Solar_SIZE];
+    PAYLOAD_Solar payload;
+    payload.MessageType = 56;
+    payload.DeviceId = 101;
+    payload.MessageId = 0;
+    payload.Light = 0; // Not got a light sensor attached to this device.
 
     // Start in sensing mode.
     state = MAIN_STATE_SENSE;
@@ -155,37 +156,36 @@ int main(void)
         if (state == MAIN_STATE_SENSE) {
             HAL_ADC_Start(&hadc);
             // junk readings
-            payload_garden.Temperature = TEMPERATURE_external();
-            payload_garden.CpuTemperature = TEMPERATURE_cpu();
+            payload.Temperature = TEMPERATURE_external();
+            payload.CpuTemperature = TEMPERATURE_cpu();
 
             HAL_GPIO_WritePin(GPIOA, LED_Pin, GPIO_PIN_SET);
 
-            payload_garden.MessageId++;
-            payload_garden.VCC = BATTERY_vcc();
-            payload_garden.ChargeMv = BATTERY_ChargeMv();
-            payload_garden.ChargeMa = BATTERY_ChargeMa();
+            payload.MessageId++;
+            payload.VCC = BATTERY_vcc();
+            payload.ChargeMv = BATTERY_ChargeMv();
+            payload.ChargeMa = BATTERY_ChargeMa();
 
+            // No external temperature sensor attached.
+            // BUT TEMPERATURE_external() must still be called :(
+            payload.Temperature = TEMPERATURE_external();
+            payload.Temperature = 0;
 
-
-            /* Get the light reading while the adc gets ready */
-            payload_garden.Light = LIGHT_lux();
-
-            payload_garden.Temperature = TEMPERATURE_external();
-            payload_garden.CpuTemperature = TEMPERATURE_cpu();
+            payload.CpuTemperature = TEMPERATURE_cpu();
             HAL_ADC_Stop(&hadc);
 
-            sprintf(tx1_buffer, "id:%d, vcc:%d, mv:%d, ma:%d, C:%d, cpuC:%d, lux:%d\n",
-                    payload_garden.MessageId,
-                    payload_garden.VCC,
-                    payload_garden.ChargeMv,
-                    payload_garden.ChargeMa,
-                    payload_garden.Temperature,
-                    payload_garden.CpuTemperature,
-                    payload_garden.Light);
+            sprintf(tx1_buffer, "msg_id:%d, device_id:%d, vcc:%d, mv:%d, ma:%d, cpuC:%d, lux:%d\n",
+            		payload.MessageId,
+					payload.DeviceId,
+					payload.VCC,
+					payload.ChargeMv,
+					payload.ChargeMa,
+					payload.CpuTemperature,
+					payload.Light);
             HAL_UART_Transmit(&huart1, (uint8_t*) tx1_buffer, strlen(tx1_buffer), 1000);
 
-            PAYLOAD_Garden_serialize(payload_garden, payload_buff);
-            RFM95_send(&hspi2, payload_buff, 14);
+            PAYLOAD_Solar_serialize(payload, payload_buff);
+            RFM95_send(&hspi2, payload_buff, PAYLOAD_Solar_SIZE);
 
             state = MAIN_STATE_TX;
         }
@@ -206,23 +206,23 @@ int main(void)
         else if (state == MAIN_STATE_SLEEP) {
             HAL_GPIO_WritePin(GPIOA, LED_Pin, GPIO_PIN_RESET);
 
-            //TMP while RFM is diabled
-            //HAL_Delay(1000);
+            //TMP
+            HAL_Delay(10000);
 
-            /* Turn off the pin interrupts */
-            HAL_NVIC_DisableIRQ(EXTI4_15_IRQn);
-
-            HAL_SuspendTick();
-
-            /* Enter Stop Mode */
-            HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, 60,
-            RTC_WAKEUPCLOCK_CK_SPRE_16BITS);
-            HAL_PWR_EnterSTOPMode(PWR_LOWPOWERREGULATOR_ON, PWR_STOPENTRY_WFI);
-            HAL_RTCEx_DeactivateWakeUpTimer(&hrtc);
-            HAL_ResumeTick();
-
-            /* Turn on the pin interrupts */
-            HAL_NVIC_EnableIRQ(EXTI4_15_IRQn);
+//            /* Turn off the pin interrupts */
+//            HAL_NVIC_DisableIRQ(EXTI4_15_IRQn);
+//
+//            HAL_SuspendTick();
+//
+//            /* Enter Stop Mode */
+//            HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, 60,
+//            RTC_WAKEUPCLOCK_CK_SPRE_16BITS);
+//            HAL_PWR_EnterSTOPMode(PWR_LOWPOWERREGULATOR_ON, PWR_STOPENTRY_WFI);
+//            HAL_RTCEx_DeactivateWakeUpTimer(&hrtc);
+//            HAL_ResumeTick();
+//
+//            /* Turn on the pin interrupts */
+//            HAL_NVIC_EnableIRQ(EXTI4_15_IRQn);
 
             state = MAIN_STATE_SENSE;
         }
