@@ -180,7 +180,7 @@ int main(void)
               "msg_id:%d, device_id:%d, flags:%d, vcc:%d, mv:%d, ma:%d, cpuC:%d, lux:%d\n",
             	payload.MessageId,
               payload.DeviceId,
-              payloag.Flags,
+              payload.Flags,
               payload.VCC,
               payload.ChargeMv,
               payload.ChargeMa,
