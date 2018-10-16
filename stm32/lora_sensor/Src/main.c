@@ -135,7 +135,7 @@ int main(void)
 
     uint8_t payload_buff[PAYLOAD_Solar_SIZE];
     PAYLOAD_Solar payload;
-    payload.MessageType = 56;
+    payload.MessageType = 55;
     payload.DeviceId = 101;
     payload.MessageId = 0;
     payload.Light = 0; // Not got a light sensor attached to this device.
@@ -207,7 +207,7 @@ int main(void)
             HAL_GPIO_WritePin(GPIOA, LED_Pin, GPIO_PIN_RESET);
 
             //TMP
-            HAL_Delay(10000);
+            HAL_Delay(17000);
 
 //            /* Turn off the pin interrupts */
 //            HAL_NVIC_DisableIRQ(EXTI4_15_IRQn);

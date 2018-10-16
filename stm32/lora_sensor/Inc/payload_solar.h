@@ -12,8 +12,9 @@
 
 typedef struct {
   uint8_t MessageType;
-  uint16_t DeviceId;
+  uint8_t DeviceId;
   uint8_t MessageId;
+  uint8_t Flags;
   uint16_t VCC;
   uint16_t ChargeMv;
   int16_t ChargeMa;
