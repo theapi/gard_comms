@@ -6,7 +6,7 @@
   ******************************************************************************
   ** This notice applies to any and all portions of this file
   * that are not between comment pairs USER CODE BEGIN and
-  * USER CODE END. Other portions of this file, whether 
+  * USER CODE END. Other portions of this file, whether
   * inserted by the user or by software development tools
   * are owned by their respective copyright owners.
   *
@@ -138,6 +138,7 @@ int main(void)
     payload.MessageType = 55;
     payload.DeviceId = 101;
     payload.MessageId = 0;
+    payload.Flags = 0;
     payload.Light = 0; // Not got a light sensor attached to this device.
 
     // Start in sensing mode.
@@ -174,14 +175,18 @@ int main(void)
             payload.CpuTemperature = TEMPERATURE_cpu();
             HAL_ADC_Stop(&hadc);
 
-            sprintf(tx1_buffer, "msg_id:%d, device_id:%d, vcc:%d, mv:%d, ma:%d, cpuC:%d, lux:%d\n",
-            		payload.MessageId,
-					payload.DeviceId,
-					payload.VCC,
-					payload.ChargeMv,
-					payload.ChargeMa,
-					payload.CpuTemperature,
-					payload.Light);
+            sprintf(
+              tx1_buffer,
+              "msg_id:%d, device_id:%d, flags:%d, vcc:%d, mv:%d, ma:%d, cpuC:%d, lux:%d\n",
+            	payload.MessageId,
+              payload.DeviceId,
+              payloag.Flags,
+              payload.VCC,
+              payload.ChargeMv,
+              payload.ChargeMa,
+              payload.CpuTemperature,
+              payload.Light
+            );
             HAL_UART_Transmit(&huart1, (uint8_t*) tx1_buffer, strlen(tx1_buffer), 1000);
 
             PAYLOAD_Solar_serialize(payload, payload_buff);
@@ -243,11 +248,11 @@ void SystemClock_Config(void)
   RCC_ClkInitTypeDef RCC_ClkInitStruct;
   RCC_PeriphCLKInitTypeDef PeriphClkInit;
 
-    /**Configure the main internal regulator output voltage 
+    /**Configure the main internal regulator output voltage
     */
   __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
 
-    /**Initializes the CPU, AHB and APB busses clocks 
+    /**Initializes the CPU, AHB and APB busses clocks
     */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI|RCC_OSCILLATORTYPE_LSI;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
@@ -259,7 +264,7 @@ void SystemClock_Config(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-    /**Initializes the CPU, AHB and APB busses clocks 
+    /**Initializes the CPU, AHB and APB busses clocks
     */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
@@ -283,11 +288,11 @@ void SystemClock_Config(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-    /**Configure the Systick interrupt time 
+    /**Configure the Systick interrupt time
     */
   HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq()/1000);
 
-    /**Configure the Systick 
+    /**Configure the Systick
     */
   HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
 
@@ -360,7 +365,7 @@ void _Error_Handler(char *file, int line)
   * @retval None
   */
 void assert_failed(uint8_t* file, uint32_t line)
-{ 
+{
   /* USER CODE BEGIN 6 */
     /* User can add his own implementation to report the file name and line number,
      ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
