@@ -50,6 +50,7 @@
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
+char aRxBuffer[24];
 
 /* USER CODE END PV */
 
@@ -98,11 +99,6 @@ int main(void)
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
 
-  /* Buffer used for transmission on USART1 */
-  char tx_buffer[3];
-
-    /* Buffer used for receiving on USART1 */
-  char rx_buffer[3];
 
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
 
@@ -116,9 +112,8 @@ int main(void)
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
-	  HAL_UART_Receive(&huart2, rx_buffer, strlen(rx_buffer), HAL_MAX_DELAY);
-	  HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
-	  HAL_UART_Transmit(&huart1, rx_buffer, strlen(rx_buffer), 200);
+	  //uint16_t len = strlen(aRxBuffer); //CAn't pass len to HAL_UART_Receive_IT :(
+	  HAL_UART_Receive_IT(&huart2, (uint8_t *)aRxBuffer, 16);
 
 
   }
@@ -188,6 +183,18 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+  /* Prevent unused argument(s) compilation warning */
+  //UNUSED(huart);
+
+	HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+  /* NOTE : This function should not be modified, when the callback is needed,
+            the HAL_UART_RxCpltCallback can be implemented in the user file
+   */
+    HAL_UART_Transmit(&huart1, (uint8_t *)aRxBuffer, sizeof(aRxBuffer), 200);
+}
 
 /* USER CODE END 4 */
 
