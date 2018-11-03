@@ -50,7 +50,11 @@
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
-char aRxBuffer[24];
+
+
+#define RXBUFFERSIZE 8
+char aRxBuffer[RXBUFFERSIZE];
+__IO ITStatus RxReady = RESET;
 
 /* USER CODE END PV */
 
@@ -112,11 +116,22 @@ int main(void)
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
-	  //uint16_t len = strlen(aRxBuffer); //CAn't pass len to HAL_UART_Receive_IT :(
-	  HAL_UART_Receive_IT(&huart2, (uint8_t *)aRxBuffer, 16);
 
+	  // RX buffer has been processed, listen again for more.
+	  if (RxReady == RESET) {
+		  // Non blocking.
+		  HAL_UART_Receive_IT(&huart2, (uint8_t *)aRxBuffer, RXBUFFERSIZE);
+	  }
+	  // Wait for the buffer to be full.
+	  else if (RxReady == SET) {
+	  	  HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+	  	  // Blocking.
+	      HAL_UART_Transmit(&huart1, (uint8_t *)aRxBuffer, sizeof(aRxBuffer), 200);
+	      RxReady = RESET;
+	  }
 
   }
+
   /* USER CODE END 3 */
 
 }
@@ -186,14 +201,7 @@ void SystemClock_Config(void)
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-  /* Prevent unused argument(s) compilation warning */
-  //UNUSED(huart);
-
-	HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
-  /* NOTE : This function should not be modified, when the callback is needed,
-            the HAL_UART_RxCpltCallback can be implemented in the user file
-   */
-    HAL_UART_Transmit(&huart1, (uint8_t *)aRxBuffer, sizeof(aRxBuffer), 200);
+	RxReady = SET;
 }
 
 /* USER CODE END 4 */
