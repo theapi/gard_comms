@@ -120,6 +120,8 @@ int main(void)
 
   int num = 0;
 
+  HAL_GPIO_WritePin(GPIOA, LED_Pin, GPIO_PIN_SET);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -133,6 +135,7 @@ int main(void)
 
 	sprintf(tx1_buffer, "id:%d\n", ++num);
 	HAL_UART_Transmit(&huart1, (uint8_t*) tx1_buffer, strlen(tx1_buffer), 1000);
+	HAL_GPIO_TogglePin(GPIOA, LED_Pin);
 	HAL_Delay(1000);
 
   }
