@@ -60,7 +60,7 @@
 /* USER CODE BEGIN Private defines */
 
 /* Configuration **************************************************************/
-#define DMA_BUF_SIZE        64      /* DMA circular buffer size in bytes */
+#define DMA_BUF_SIZE        32      /* DMA circular buffer size in bytes */
 #define DMA_TIMEOUT_MS      10      /* DMA Timeout duration in msec */
 /******************************************************************************/
 

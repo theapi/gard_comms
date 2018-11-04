@@ -141,16 +141,7 @@ int main(void)
 
   /* USER CODE BEGIN 3 */
 
-	  // RX buffer has been processed, listen again for more.
-	  if (RxReady == RESET) {
 
-	  }
-	  if (RxReady == SET) {
-//		  HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
-//		  // Blocking.
-//		  HAL_UART_Transmit(&huart1, (uint8_t *)data, sizeof(data), 200);
-//		  RxReady = RESET;
-	  }
 
   }
   /* USER CODE END 3 */
@@ -275,12 +266,12 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
     }
 
     /* Data ready for using */
-    RxReady = SET;
+    //RxReady = SET;
 
     HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
-    		  // Blocking.
-    		  HAL_UART_Transmit(&huart1, (uint8_t *)data, sizeof(data), 200);
-    		  RxReady = RESET;
+	// Blocking.
+	HAL_UART_Transmit(&huart1, (uint8_t *)data, length, 200);
+	//RxReady = RESET;
 
 }
 
