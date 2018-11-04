@@ -1,8 +1,11 @@
 
 
-#include <SoftwareSerial.h>
+// http://gammon.com.au/Arduino/SendOnlySoftwareSerial.zip
+#include <SendOnlySoftwareSerial.h>
 
-SoftwareSerial SoftSerial(10, 11); // RX, TX
+#define PIN_SOFT_SERIAL_TX 11
+
+SendOnlySoftwareSerial SoftSerial(PIN_SOFT_SERIAL_TX);
 
 int num = 0;
 
