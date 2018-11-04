@@ -83,7 +83,7 @@ void SystemClock_Config(void);
 uint8_t dma_rx_buf[DMA_BUF_SIZE];       /* Circular buffer for DMA */
 uint8_t data[DMA_BUF_SIZE] = {'\0'};    /* Data buffer that contains newly received data */
 
-__IO ITStatus RxReady = RESET;
+volatile __IO ITStatus RxReady = RESET;
 
 /* USER CODE END 0 */
 
@@ -146,7 +146,6 @@ int main(void)
 		  HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
 		  // Blocking.
 		  HAL_UART_Transmit(&huart1, (uint8_t *)data, dma_uart_rx.length, 200);
-
 	  }
 
   }
