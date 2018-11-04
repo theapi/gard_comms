@@ -52,9 +52,12 @@
 /* Private variables ---------------------------------------------------------*/
 
 
-#define RXBUFFERSIZE 9
+#define RXBUFFERSIZE 1
+#define TXBUFFERSIZE 32
 char aRxBuffer[RXBUFFERSIZE];
-__IO ITStatus RxReady = SET;
+volatile uint8_t txBuffer[TXBUFFERSIZE];
+volatile uint8_t txIndex = 0;
+volatile __IO ITStatus TxReady = RESET;
 
 /* USER CODE END PV */
 
@@ -117,19 +120,20 @@ int main(void)
 
   /* USER CODE BEGIN 3 */
 
-	  // RX buffer has been processed, listen again for more.
-	  if (RxReady == RESET) {
+	  // TX buffer has been processed, listen again for more.
+	  if (TxReady == RESET) {
 		  // Non blocking.
-		  //HAL_UART_Receive_IT(&huart2, (uint8_t *)aRxBuffer, RXBUFFERSIZE);
+		  HAL_UART_Receive_IT(&huart2, (uint8_t *)aRxBuffer, RXBUFFERSIZE);
 	  }
 	  // Wait for the buffer to be full.
-	  else if (RxReady == SET) {
-		  HAL_UART_Receive_IT(&huart2, (uint8_t *)aRxBuffer, RXBUFFERSIZE);
-
-	  	  HAL_UART_Transmit_IT(&huart1, (uint8_t *)aRxBuffer, sizeof(aRxBuffer));
-	  	HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
-
-	      RxReady = RESET;
+	  else if (TxReady == SET) {
+		  // Send the prepared txBuffer (non blocking).
+	  	  HAL_UART_Transmit_IT(&huart1, (uint8_t *)txBuffer, txIndex);
+	  	  // Reset the send buffer length.
+	  	  txIndex = 0;
+	  	  HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+	  	  // Ready to listen again.
+	  	  TxReady = RESET;
 	  }
 
   }
@@ -203,7 +207,13 @@ void SystemClock_Config(void)
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-	RxReady = SET;
+	uint8_t c = aRxBuffer[0];
+	txBuffer[txIndex++] = c;
+	// Keep adding to the txBuffer untill the new line character "\n".
+	if (c == 0x0A) {
+		// Buffer ready to send.
+		TxReady = SET;
+	}
 }
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
@@ -226,7 +236,7 @@ void _Error_Handler(char *file, int line)
   while(1)
   {
 	  HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
-	  	  HAL_Delay(200);
+	  HAL_Delay(200);
   }
   /* USER CODE END Error_Handler_Debug */
 }
