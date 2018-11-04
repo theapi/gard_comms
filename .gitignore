@@ -1,0 +1,6 @@
+# Eclipse
+.buildpath
+.settings
+Release/
+Debug/
+
