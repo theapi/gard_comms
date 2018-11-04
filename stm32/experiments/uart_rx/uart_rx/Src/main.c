@@ -52,7 +52,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 
-#define RXBUFFERSIZE 8
+#define RXBUFFERSIZE 10
 char aRxBuffer[RXBUFFERSIZE];
 __IO ITStatus RxReady = RESET;
 
@@ -218,6 +218,8 @@ void _Error_Handler(char *file, int line)
   /* User can add his own implementation to report the HAL error return state */
   while(1)
   {
+	  HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+	  	  HAL_Delay(200);
   }
   /* USER CODE END Error_Handler_Debug */
 }
