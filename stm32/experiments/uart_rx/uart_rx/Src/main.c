@@ -52,9 +52,9 @@
 /* Private variables ---------------------------------------------------------*/
 
 
-#define RXBUFFERSIZE 10
+#define RXBUFFERSIZE 9
 char aRxBuffer[RXBUFFERSIZE];
-__IO ITStatus RxReady = RESET;
+__IO ITStatus RxReady = SET;
 
 /* USER CODE END PV */
 
@@ -120,13 +120,15 @@ int main(void)
 	  // RX buffer has been processed, listen again for more.
 	  if (RxReady == RESET) {
 		  // Non blocking.
-		  HAL_UART_Receive_IT(&huart2, (uint8_t *)aRxBuffer, RXBUFFERSIZE);
+		  //HAL_UART_Receive_IT(&huart2, (uint8_t *)aRxBuffer, RXBUFFERSIZE);
 	  }
 	  // Wait for the buffer to be full.
 	  else if (RxReady == SET) {
-	  	  HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
-	  	  // Blocking.
-	      HAL_UART_Transmit(&huart1, (uint8_t *)aRxBuffer, sizeof(aRxBuffer), 200);
+		  HAL_UART_Receive_IT(&huart2, (uint8_t *)aRxBuffer, RXBUFFERSIZE);
+
+	  	  HAL_UART_Transmit_IT(&huart1, (uint8_t *)aRxBuffer, sizeof(aRxBuffer));
+	  	HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+
 	      RxReady = RESET;
 	  }
 
@@ -202,6 +204,11 @@ void SystemClock_Config(void)
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	RxReady = SET;
+}
+
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
+{
+
 }
 
 /* USER CODE END 4 */
