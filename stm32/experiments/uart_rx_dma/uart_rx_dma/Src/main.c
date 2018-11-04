@@ -125,10 +125,10 @@ int main(void)
 
 
   if (HAL_UART_Receive_DMA(&huart2, (uint8_t*)dma_rx_buf, DMA_BUF_SIZE) != HAL_OK) {
-  		     Error_Handler();
-  		  }
-  		  /* Disable Half Transfer Interrupt */
-  		        __HAL_DMA_DISABLE_IT(huart2.hdmarx, DMA_IT_HT);
+	  Error_Handler();
+  }
+  /* Disable Half Transfer Interrupt */
+   __HAL_DMA_DISABLE_IT(huart2.hdmarx, DMA_IT_HT);
 
   /* USER CODE END 2 */
 
@@ -141,7 +141,13 @@ int main(void)
 
   /* USER CODE BEGIN 3 */
 
+	  if (RxReady == SET) {
+		  RxReady = RESET;
+		  HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+		  // Blocking.
+		  HAL_UART_Transmit(&huart1, (uint8_t *)data, dma_uart_rx.length, 200);
 
+	  }
 
   }
   /* USER CODE END 3 */
@@ -229,7 +235,7 @@ void SystemClock_Config(void)
 */
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-    uint16_t i, pos, start, length;
+    uint16_t i, pos, start;
     uint16_t currCNDTR = __HAL_DMA_GET_COUNTER(huart->hdmarx);
 
     /* Ignore IDLE Timeout when the received characters exactly filled up the DMA buffer and DMA Rx Complete IT is generated,
@@ -249,30 +255,24 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
          *  If previous CNDTR is less than DMA buffer size: there is old data in DMA buffer (from previous timeout) that has to be ignored.
          *  If CNDTR == DMA buffer size: entire buffer content is new and has to be processed.
         */
-        length = (dma_uart_rx.prevCNDTR < DMA_BUF_SIZE) ? (dma_uart_rx.prevCNDTR - currCNDTR) : (DMA_BUF_SIZE - currCNDTR);
+    	dma_uart_rx.length = (dma_uart_rx.prevCNDTR < DMA_BUF_SIZE) ? (dma_uart_rx.prevCNDTR - currCNDTR) : (DMA_BUF_SIZE - currCNDTR);
         dma_uart_rx.prevCNDTR = currCNDTR;
         dma_uart_rx.flag = 0;
     }
     else                /* DMA Rx Complete event */
     {
-        length = DMA_BUF_SIZE - start;
+    	dma_uart_rx.length = DMA_BUF_SIZE - start;
         dma_uart_rx.prevCNDTR = DMA_BUF_SIZE;
     }
 
     /* Copy and Process new data */
-    for(i=0,pos=start; i<length; ++i,++pos)
+    for(i=0,pos=start; i<dma_uart_rx.length; ++i,++pos)
     {
         data[i] = dma_rx_buf[pos];
     }
 
     /* Data ready for using */
-    //RxReady = SET;
-
-    HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
-	// Blocking.
-	HAL_UART_Transmit(&huart1, (uint8_t *)data, length, 200);
-	//RxReady = RESET;
-
+    RxReady = SET;
 }
 
 /* Error callback */

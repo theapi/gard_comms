@@ -70,6 +70,7 @@ typedef struct
     volatile uint8_t  flag;     /* Timeout event flag */
     uint16_t timer;             /* Timeout duration in msec */
     uint16_t prevCNDTR;         /* Holds previous value of DMA_CNDTR */
+    uint16_t length; /* How many bytes were received */
 } DMA_Event_t;
 
 

@@ -48,7 +48,7 @@
 /* DMA Timeout event structure
  * Note: prevCNDTR initial value must be set to maximum size of DMA buffer!
 */
-DMA_Event_t dma_uart_rx = {0,0,DMA_BUF_SIZE};
+DMA_Event_t dma_uart_rx = {0,0,DMA_BUF_SIZE,0};
 
 /* USER CODE END 0 */
 
