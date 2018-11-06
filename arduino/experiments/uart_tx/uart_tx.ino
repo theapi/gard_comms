@@ -3,7 +3,7 @@
 // http://gammon.com.au/Arduino/SendOnlySoftwareSerial.zip
 #include <SendOnlySoftwareSerial.h>
 
-#define PIN_SOFT_SERIAL_TX 11
+#define PIN_SOFT_SERIAL_TX 0
 
 SendOnlySoftwareSerial SoftSerial(PIN_SOFT_SERIAL_TX);
 
@@ -15,7 +15,7 @@ void setup() {
 }
 
 void loop() {
-  SoftSerial.print("ID: ");
+  SoftSerial.print("id: ");
   SoftSerial.println(num++);
   delay(1000);
 }
