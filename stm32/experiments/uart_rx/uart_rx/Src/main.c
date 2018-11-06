@@ -57,7 +57,8 @@
 char aRxBuffer[RXBUFFERSIZE];
 volatile uint8_t txBuffer[TXBUFFERSIZE];
 volatile uint8_t txIndex = 0;
-volatile __IO ITStatus TxReady = RESET;
+__IO ITStatus txReady = RESET;
+__IO ITStatus rxStatus = RESET;
 
 /* USER CODE END PV */
 
@@ -120,20 +121,22 @@ int main(void)
 
   /* USER CODE BEGIN 3 */
 
-	  // TX buffer has been processed, listen again for more.
-	  if (TxReady == RESET) {
+	  // RX buffer has been processed, listen again for more.
+	  if (rxStatus == 0) {
+		  rxStatus = 1;
 		  // Non blocking.
 		  HAL_UART_Receive_IT(&huart2, (uint8_t *)aRxBuffer, RXBUFFERSIZE);
 	  }
-	  // Wait for the buffer to be full.
-	  else if (TxReady == SET) {
+
+	  // Wait for the tx buffer to be ready.
+	  if (txReady == SET) {
 		  // Send the prepared txBuffer (non blocking).
 	  	  HAL_UART_Transmit_IT(&huart1, (uint8_t *)txBuffer, txIndex);
 	  	  // Reset the send buffer length.
 	  	  txIndex = 0;
 	  	  HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
-	  	  // Ready to listen again.
-	  	  TxReady = RESET;
+	  	  // Ready to fill the tx buffer again.
+	  	  txReady = RESET;
 	  }
 
   }
@@ -208,12 +211,21 @@ void SystemClock_Config(void)
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	uint8_t c = aRxBuffer[0];
+
+	// Prevent buffer overflow.
+	if (txIndex >= TXBUFFERSIZE) {
+		txIndex = 0;
+	}
+
+	// Add the character to the tx buffer.
 	txBuffer[txIndex++] = c;
-	// Keep adding to the txBuffer untill the new line character "\n".
+
+	// Keep adding to the tx buffer until the new line character "\n".
 	if (c == 0x0A) {
 		// Buffer ready to send.
-		TxReady = SET;
+		txReady = SET;
 	}
+	rxStatus = 0;
 }
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
