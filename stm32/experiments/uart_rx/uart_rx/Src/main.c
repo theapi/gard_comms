@@ -125,13 +125,13 @@ int main(void)
 	  if (rxStatus == 0) {
 		  rxStatus = 1;
 		  // Non blocking.
-		  HAL_UART_Receive_IT(&huart2, (uint8_t *)aRxBuffer, RXBUFFERSIZE);
+		  HAL_UART_Receive_IT(&huart1, (uint8_t *)aRxBuffer, RXBUFFERSIZE);
 	  }
 
 	  // Wait for the tx buffer to be ready.
 	  if (txReady == SET) {
 		  // Send the prepared txBuffer (non blocking).
-	  	  HAL_UART_Transmit_IT(&huart1, (uint8_t *)txBuffer, txIndex);
+	  	  HAL_UART_Transmit_IT(&huart2, (uint8_t *)txBuffer, txIndex);
 	  	  // Reset the send buffer length.
 	  	  txIndex = 0;
 	  	  HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
