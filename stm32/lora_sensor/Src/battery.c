@@ -11,16 +11,24 @@ uint16_t BATTERY_vcc() {
     /*
      * 2x gain   +/- 2.048V  1 bit = 1mV
      * 1x gain   +/- 4.096V  1 bit = 2mv
-     * Battery is measured via a voltage divided, which halves the voltage.
-     * 3 X rechargable batteries, allowing for 1.5V per battery, 4.5V
-     * 4.5V on the voltage divider = 2.25V
+     * Battery is measured via a voltage divider = 620 / 100
+     *
+     * 1x gain:
+     *   1v  = 71 bits = 142mV
+     *   2v  = 141 bits = 282mV
+     *   3v  = 213 bits = 426mV
+     *   15V = 1065 bits = 2130mV
+     *
+     *   1000 / 71 = 14.084507042
+     *   so 1 bit = 14.084507042 mV on the battery.
+     *   .. 1065 bits = 1065 * 14.084507042 = 15V
      */
     uint16_t val = ADS1015_SingleEnded(&hi2c1, ADS1015_ADDRESS, 3, ADS1015_GAIN_ONE);
     /*
-     * x2 for the 2mv per bit
-     * x2 for the voltage divider
+     * Multiply val by 14.084507042 to get the real mV before the voltage divider & gain.
      */
-    return val * 4;
+    float mV = (float)val * 14.084507042;
+    return (int) mV;
 }
 
 uint16_t BATTERY_ChargeMv() {
@@ -32,9 +40,18 @@ uint16_t BATTERY_ChargeMv() {
 }
 
 int16_t BATTERY_ChargeMa() {
-    int16_t val = ADS1015_Differential_0_1(&hi2c1, ADS1015_ADDRESS, ADS1015_GAIN_TWO);
-    /*
-     * Invert as its a negative value referenced to ground when charging.
-     */
-    return val *-1;
+	/*
+	 * 16x gain
+	 * 384 = 500mA = 1.302083333 mA per bit
+	 * 308 * 1.302083333 = 401.041666564 -  actual 400mA
+	 * 458 * 1.302083333 = 596.354166514 - actual 600mA
+	 *
+	 * 2x gain:
+	 * 48 = 500mA = 10.416666667 mA per bit
+	 * 38 * 10.416666667 mA = 395.833333346 mA - actual 400mA
+	 * 57 * 10.416666667 mA = 593.750000019 mA - actual 600mA
+	 */
+    int16_t val = ADS1015_Differential_0_1(&hi2c1, ADS1015_ADDRESS, ADS1015_GAIN_SIXTEEN);
+
+    return val;
 }
