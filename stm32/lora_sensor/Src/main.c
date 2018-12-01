@@ -155,7 +155,7 @@ int main(void)
     uint8_t payload_buff[PAYLOAD_Solar_SIZE];
     PAYLOAD_Solar payload;
     payload.MessageType = 55;
-    payload.DeviceId = 101;
+    payload.DeviceId = 2;
     payload.MessageId = 0;
     payload.Flags = 0;
     payload.Light = 0; // Not got a light sensor attached to this device.
