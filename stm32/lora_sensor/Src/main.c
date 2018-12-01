@@ -1,4 +1,4 @@
-
+/* USER CODE BEGIN Header */
 /**
   ******************************************************************************
   * @file           : main.c
@@ -6,7 +6,7 @@
   ******************************************************************************
   ** This notice applies to any and all portions of this file
   * that are not between comment pairs USER CODE BEGIN and
-  * USER CODE END. Other portions of this file, whether
+  * USER CODE END. Other portions of this file, whether 
   * inserted by the user or by software development tools
   * are owned by their respective copyright owners.
   *
@@ -36,9 +36,10 @@
   *
   ******************************************************************************
   */
+/* USER CODE END Header */
+
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "stm32l0xx_hal.h"
 #include "adc.h"
 #include "i2c.h"
 #include "rtc.h"
@@ -46,9 +47,11 @@
 #include "usart.h"
 #include "gpio.h"
 
+/* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
 #include "string.h"
+#include "stdio.h"
 
 #include "rfm95.h"
 #include "payload_solar.h"
@@ -58,6 +61,22 @@
 #include "light.h"
 
 /* USER CODE END Includes */
+
+/* Private typedef -----------------------------------------------------------*/
+/* USER CODE BEGIN PTD */
+
+/* USER CODE END PTD */
+
+/* Private define ------------------------------------------------------------*/
+/* USER CODE BEGIN PD */
+#define TXBUFFERSIZE 128
+
+/* USER CODE END PD */
+
+/* Private macro -------------------------------------------------------------*/
+/* USER CODE BEGIN PM */
+
+/* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
 
@@ -69,23 +88,25 @@
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_NVIC_Init(void);
-
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
 
 /* USER CODE END PFP */
 
+/* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
 volatile uint8_t dio0_action = 0;
 MAIN_StateTypeDef state;
 
+/* Buffer used for debug UART */
+char tx_buffer[TXBUFFERSIZE];
+
 /* USER CODE END 0 */
 
 /**
   * @brief  The application entry point.
-  *
-  * @retval None
+  * @retval int
   */
 int main(void)
 {
@@ -93,7 +114,7 @@ int main(void)
 
   /* USER CODE END 1 */
 
-  /* MCU Configuration----------------------------------------------------------*/
+  /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
@@ -116,6 +137,7 @@ int main(void)
   MX_RTC_Init();
   MX_USART1_UART_Init();
   MX_SPI2_Init();
+  MX_USART2_UART_Init();
 
   /* Initialize interrupts */
   MX_NVIC_Init();
@@ -126,9 +148,6 @@ int main(void)
     /* Enable Ultra low power mode */
     HAL_PWREx_EnableUltraLowPower();
     __HAL_RCC_WAKEUPSTOP_CLK_CONFIG(RCC_STOP_WAKEUPCLOCK_HSI);
-
-    /* Buffer used for transmission on USART1 */
-    char tx1_buffer[120];
 
 
     RFM95_init(&hspi2);
@@ -149,14 +168,14 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
     while (1) {
-  /* USER CODE END WHILE */
+    /* USER CODE END WHILE */
 
-  /* USER CODE BEGIN 3 */
+    /* USER CODE BEGIN 3 */
 
         /* Do some work */
         if (state == MAIN_STATE_SENSE) {
             HAL_ADC_Start(&hadc);
-            // junk readings
+            // Junk readings as the adc just turned on.
             payload.Temperature = TEMPERATURE_external();
             payload.CpuTemperature = TEMPERATURE_cpu();
 
@@ -167,27 +186,29 @@ int main(void)
             payload.ChargeMv = BATTERY_ChargeMv();
             payload.ChargeMa = BATTERY_ChargeMa();
 
+
             // No external temperature sensor attached.
             // BUT TEMPERATURE_external() must still be called :(
             payload.Temperature = TEMPERATURE_external();
-            payload.Temperature = 0;
+            //payload.Temperature = 0;
 
             payload.CpuTemperature = TEMPERATURE_cpu();
             HAL_ADC_Stop(&hadc);
 
-            sprintf(
-              tx1_buffer,
-              "msg_id:%d, device_id:%d, flags:%d, vcc:%d, mv:%d, ma:%d, cpuC:%d, lux:%d\n",
-            	payload.MessageId,
-              payload.DeviceId,
-              payload.Flags,
-              payload.VCC,
-              payload.ChargeMv,
-              payload.ChargeMa,
-              payload.CpuTemperature,
-              payload.Light
-            );
-            HAL_UART_Transmit(&huart1, (uint8_t*) tx1_buffer, strlen(tx1_buffer), 1000);
+            // Send data to debug UART.
+			int tx_len = snprintf(
+			  tx_buffer,
+			  TXBUFFERSIZE,
+			  "msg_id:%d, device_id:%u, flags:%X, vcc:%u, ma:%d, cpuC:%d\n",
+			  payload.MessageId,
+			  payload.DeviceId,
+			  payload.Flags,
+			  payload.VCC,
+			  payload.ChargeMa,
+			  payload.CpuTemperature
+			);
+			// Blocking UART.
+			HAL_UART_Transmit(&huart2, (uint8_t *)tx_buffer, tx_len, 500);
 
             PAYLOAD_Solar_serialize(payload, payload_buff);
             RFM95_send(&hspi2, payload_buff, PAYLOAD_Solar_SIZE);
@@ -234,7 +255,6 @@ int main(void)
 
     }
   /* USER CODE END 3 */
-
 }
 
 /**
@@ -243,29 +263,26 @@ int main(void)
   */
 void SystemClock_Config(void)
 {
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+  RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
 
-  RCC_OscInitTypeDef RCC_OscInitStruct;
-  RCC_ClkInitTypeDef RCC_ClkInitStruct;
-  RCC_PeriphCLKInitTypeDef PeriphClkInit;
-
-    /**Configure the main internal regulator output voltage
-    */
+  /**Configure the main internal regulator output voltage 
+  */
   __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
-
-    /**Initializes the CPU, AHB and APB busses clocks
-    */
+  /**Initializes the CPU, AHB and APB busses clocks 
+  */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI|RCC_OSCILLATORTYPE_LSI;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.HSICalibrationValue = 16;
+  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.LSIState = RCC_LSI_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
-    _Error_Handler(__FILE__, __LINE__);
+    Error_Handler();
   }
-
-    /**Initializes the CPU, AHB and APB busses clocks
-    */
+  /**Initializes the CPU, AHB and APB busses clocks 
+  */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
@@ -275,29 +292,18 @@ void SystemClock_Config(void)
 
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
   {
-    _Error_Handler(__FILE__, __LINE__);
+    Error_Handler();
   }
-
-  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1|RCC_PERIPHCLK_I2C1
-                              |RCC_PERIPHCLK_RTC;
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1|RCC_PERIPHCLK_USART2
+                              |RCC_PERIPHCLK_I2C1|RCC_PERIPHCLK_RTC;
   PeriphClkInit.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK2;
+  PeriphClkInit.Usart2ClockSelection = RCC_USART2CLKSOURCE_PCLK1;
   PeriphClkInit.I2c1ClockSelection = RCC_I2C1CLKSOURCE_PCLK1;
   PeriphClkInit.RTCClockSelection = RCC_RTCCLKSOURCE_LSI;
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
   {
-    _Error_Handler(__FILE__, __LINE__);
+    Error_Handler();
   }
-
-    /**Configure the Systick interrupt time
-    */
-  HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq()/1000);
-
-    /**Configure the Systick
-    */
-  HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
-
-  /* SysTick_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
 }
 
 /**
@@ -323,6 +329,33 @@ void HAL_RTCEx_WakeUpTimerEventCallback(RTC_HandleTypeDef *hrtc) {
     // Wake up
 }
 
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+	/*
+	uint8_t c = aRxBuffer[0];
+
+	// Prevent buffer overflow.
+	if (txIndex >= TXBUFFERSIZE) {
+		txIndex = 0;
+	}
+
+	// Add the character to the tx buffer.
+	txBuffer[txIndex++] = c;
+
+	// Keep adding to the tx buffer until the new line character "\n".
+	if (c == 0x0A) {
+		// Buffer ready to send.
+		txReady = SET;
+	}
+	rxStatus = 0;
+	*/
+}
+
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
+{
+
+}
+
 /**
  * Callback for HAL_GPIO_EXTI_IRQHandler() in EXTI4_15_IRQHandler().
  *
@@ -338,17 +371,12 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 
 /**
   * @brief  This function is executed in case of error occurrence.
-  * @param  file: The file name as string.
-  * @param  line: The line in file as a number.
   * @retval None
   */
-void _Error_Handler(char *file, int line)
+void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
     /* User can add his own implementation to report the HAL error return state */
-    char buffer[80];
-    sprintf(buffer, "Error: %d\n", line);
-    HAL_UART_Transmit(&huart1, (uint8_t*) buffer, strlen(buffer), 5000);
     while (1) {
         HAL_GPIO_TogglePin(GPIOA, LED_Pin);
         HAL_Delay(100);
@@ -364,21 +392,13 @@ void _Error_Handler(char *file, int line)
   * @param  line: assert_param error line source number
   * @retval None
   */
-void assert_failed(uint8_t* file, uint32_t line)
-{
+void assert_failed(uint8_t *file, uint32_t line)
+{ 
   /* USER CODE BEGIN 6 */
     /* User can add his own implementation to report the file name and line number,
      ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
-
-/**
-  * @}
-  */
-
-/**
-  * @}
-  */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

@@ -36,7 +36,7 @@ The TMP36 has an output scale factor of 10 mV/°C.
     }
 
     // To get actual degrees, use a float & divide by 10.
-    return deg;
+    return (int16_t) deg;
 }
 
 /**
@@ -47,7 +47,7 @@ The TMP36 has an output scale factor of 10 mV/°C.
 int16_t TEMPERATURE_cpu() {
     HAL_ADC_PollForConversion(&hadc, 100);
     uint32_t val = HAL_ADC_GetValue(&hadc);
-    return ComputeTemperature(val);
+    return (int16_t) ComputeTemperature(val);
 }
 
 /**
