@@ -122,8 +122,8 @@ int main(void)
   /* USER CODE BEGIN 3 */
 
 	  // RX buffer has been processed, listen again for more.
-	  if (rxStatus == 0) {
-		  rxStatus = 1;
+	  if (rxStatus == RESET) {
+		  rxStatus = SET;
 		  // Non blocking.
 		  HAL_UART_Receive_IT(&huart1, (uint8_t *)aRxBuffer, RXBUFFERSIZE);
 	  }
@@ -225,7 +225,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 		// Buffer ready to send.
 		txReady = SET;
 	}
-	rxStatus = 0;
+	rxStatus = RESET;
 }
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)

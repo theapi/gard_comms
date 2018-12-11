@@ -107,6 +107,13 @@ typedef enum {
     MAIN_STATE_SLEEP,
 } MAIN_StateTypeDef;
 
+typedef enum
+{
+  RX_STATE_EMPTY,
+  RX_STATE_FULL,
+  RX_STATE_INCOMING,
+} RX_StateTypeDef;
+
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

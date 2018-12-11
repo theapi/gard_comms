@@ -70,6 +70,8 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 #define TXBUFFERSIZE 128
+#define RXBUFFERSIZE 1
+
 
 /* USER CODE END PD */
 
@@ -101,6 +103,13 @@ MAIN_StateTypeDef state;
 
 /* Buffer used for debug UART */
 char tx_buffer[TXBUFFERSIZE];
+char aRxBuffer[RXBUFFERSIZE];
+volatile uint8_t txBuffer[TXBUFFERSIZE];
+volatile uint8_t txIndex = 0;
+//__IO ITStatus txReady = RESET;
+volatile RX_StateTypeDef rxStatus = RX_STATE_EMPTY;
+volatile PAYLOAD_Solar payload;
+uint8_t payload_buff[PAYLOAD_Solar_SIZE];
 
 /* USER CODE END 0 */
 
@@ -152,8 +161,8 @@ int main(void)
 
     RFM95_init(&hspi2);
 
-    uint8_t payload_buff[PAYLOAD_Solar_SIZE];
-    PAYLOAD_Solar payload;
+
+
     payload.MessageType = 55;
     payload.DeviceId = 2;
     payload.MessageId = 0;
@@ -162,6 +171,10 @@ int main(void)
 
     // Start in sensing mode.
     state = MAIN_STATE_SENSE;
+    //state = MAIN_STATE_SLEEP; //TMP sleep until UART payload
+
+    /* Listen to the UART */
+    HAL_UART_Receive_IT(&huart1, (uint8_t *)aRxBuffer, RXBUFFERSIZE);
 
   /* USER CODE END 2 */
 
@@ -214,6 +227,8 @@ int main(void)
             RFM95_send(&hspi2, payload_buff, PAYLOAD_Solar_SIZE);
 
             state = MAIN_STATE_TX;
+            /* Reset the flags as they must be set by the UART */
+            payload.Flags = 0;
         }
 
         /* Do nothing while the transmission is in progress */
@@ -232,8 +247,22 @@ int main(void)
         else if (state == MAIN_STATE_SLEEP) {
             HAL_GPIO_WritePin(GPIOA, LED_Pin, GPIO_PIN_RESET);
 
-            //TMP
-            HAL_Delay(17000);
+
+
+
+//            // RX buffer has been processed, listen again for more.
+//			  if (rxStatus == RX_STATE_EMPTY || rxStatus == RX_STATE_INCOMING) {
+//				  payload.Flags = 0;
+//				  // Non blocking.
+//				  HAL_UART_Receive_IT(&huart1, (uint8_t *)aRxBuffer, RXBUFFERSIZE);
+//			  } else if (rxStatus == RX_STATE_FULL) {
+//				  // Got a UART message
+//				  payload.Flags = txBuffer[0];
+//				  //state = MAIN_STATE_SENSE;
+//			  }
+
+              //TMP
+              HAL_Delay(17000);
 
 //            /* Turn off the pin interrupts */
 //            HAL_NVIC_DisableIRQ(EXTI4_15_IRQn);
@@ -250,7 +279,7 @@ int main(void)
 //            /* Turn on the pin interrupts */
 //            HAL_NVIC_EnableIRQ(EXTI4_15_IRQn);
 
-            state = MAIN_STATE_SENSE;
+              state = MAIN_STATE_SENSE;
         }
 
     }
@@ -331,24 +360,38 @@ void HAL_RTCEx_WakeUpTimerEventCallback(RTC_HandleTypeDef *hrtc) {
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-	/*
 	uint8_t c = aRxBuffer[0];
 
-	// Prevent buffer overflow.
-	if (txIndex >= TXBUFFERSIZE) {
-		txIndex = 0;
+	/* Wait for a new payload which starts with a tab. */
+	if (rxStatus == RX_STATE_EMPTY) {
+		if (c == 0x09) {
+			rxStatus = RX_STATE_INCOMING;
+			// Start at the beginning of the buffer.
+			txIndex = 0;
+			/* Don't store the tab */
+		}
+	}
+	/* Do nothing until a tab is seen */
+	else if (rxStatus == RX_STATE_INCOMING) {
+		// Prevent buffer overflow.
+		if (txIndex >= TXBUFFERSIZE) {
+			txIndex = 0;
+		}
+
+		// Add the character to the tx buffer.
+		txBuffer[txIndex++] = c;
+
+		// Keep adding to the tx buffer until the new line character "\n".
+		if (c == 0x0A) {
+			// Got all the payload.
+			rxStatus = RX_STATE_EMPTY;
+			payload.Flags = txBuffer[0];
+			/* Force a send */
+			state = MAIN_STATE_SENSE; // Currently not instant due to the HAL_DELAY()
+		}
 	}
 
-	// Add the character to the tx buffer.
-	txBuffer[txIndex++] = c;
-
-	// Keep adding to the tx buffer until the new line character "\n".
-	if (c == 0x0A) {
-		// Buffer ready to send.
-		txReady = SET;
-	}
-	rxStatus = 0;
-	*/
+	HAL_UART_Receive_IT(&huart1, (uint8_t *)aRxBuffer, RXBUFFERSIZE);
 }
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
